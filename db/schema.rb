@@ -455,6 +455,9 @@ ActiveRecord::Schema.define(version: 20151003142048) do
     t.text     "tumblr_ids",            limit: 65535
   end
 
+  # [A] An index ["id", "created_at", "type", "public"] may help the "tag stream" query. Reasoning: If all necessary information is in the index, no table lookup will be done unless the corresponding tuple is relevant.
+
+  # [?] What is "author_id"=>"nil" for?
   add_index "posts", ["author_id", "root_guid"], name: "index_posts_on_author_id_and_root_guid", unique: true, length: {"author_id"=>nil, "root_guid"=>190}, using: :btree
   add_index "posts", ["author_id"], name: "index_posts_on_person_id", using: :btree
   add_index "posts", ["guid"], name: "index_posts_on_guid", unique: true, length: {"guid"=>191}, using: :btree
@@ -463,6 +466,7 @@ ActiveRecord::Schema.define(version: 20151003142048) do
   add_index "posts", ["status_message_guid", "pending"], name: "index_posts_on_status_message_guid_and_pending", length: {"status_message_guid"=>190, "pending"=>nil}, using: :btree
   add_index "posts", ["status_message_guid"], name: "index_posts_on_status_message_guid", length: {"status_message_guid"=>191}, using: :btree
   add_index "posts", ["tweet_id"], name: "index_posts_on_tweet_id", length: {"tweet_id"=>191}, using: :btree
+  # [RC] This index needs removal, or at least a change to ["pending", "id"]
   add_index "posts", ["type", "pending", "id"], name: "index_posts_on_type_and_pending_and_id", using: :btree
 
   create_table "ppid", force: :cascade do |t|
@@ -587,8 +591,12 @@ ActiveRecord::Schema.define(version: 20151003142048) do
     t.integer  "tagger_id",     limit: 4
     t.string   "tagger_type",   limit: 127
     t.string   "context",       limit: 127
+    # [?] What for?
     t.datetime "created_at"
   end
+
+  # [AC] An index on ["tag_id", "taggable_type"] will probably speed up query "tag stream". Reason: Filter on [tag, taggable_type]. Removes reason to look at entry.
+  # -> Would replace ["tag_id"]
 
   add_index "taggings", ["created_at"], name: "index_taggings_on_created_at", using: :btree
   add_index "taggings", ["tag_id"], name: "index_taggings_on_tag_id", using: :btree
